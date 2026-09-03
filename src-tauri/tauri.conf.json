@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DSH Desktop",
+  "version": "0.1.0",
+  "identifier": "ru.eshmesh.dsh-desktop",
+  "build": {
+    "beforeBuildCommand": "node scripts/fetch-node.mjs && node scripts/fetch-harness.mjs"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis",
+      "deb",
+      "rpm",
+      "appimage",
+      "dmg"
+    ],
+    "publisher": "eshmeshek",
+    "shortDescription": "Desktop launcher and updater for DeepSeek Harness",
+    "longDescription": "Runs DeepSeek Harness as a background service with a tray icon and a native window, and keeps it up to date from npm. An independent community project, not affiliated with DeepSeek.",
+    "licenseFile": "../LICENSE",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "../node_modules/pnpm/": "pnpm/",
+      "node/": "node/",
+      "harness/": "harness/"
+    }
+  }
+}

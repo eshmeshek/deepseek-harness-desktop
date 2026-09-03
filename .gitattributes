@@ -1,0 +1,7 @@
+# LF in the repository on every platform: this is built by a Linux/macOS/Windows
+# CI matrix, and CRLF creeping into sources breaks nothing locally while making
+# cross-platform diffs unreadable.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary

@@ -1,0 +1,93 @@
+name: release
+
+# A machine can only bundle for its own OS, so each platform is built on its own
+# runner. macOS is deliberately absent for now: it additionally needs signing and
+# notarisation, without which Gatekeeper refuses a downloaded .dmg outright.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            triple: x86_64-pc-windows-msvc
+          # 22.04 rather than the newest image on purpose: a binary links against
+          # the glibc it was built on and runs on that version or newer, so the
+          # older builder is what makes the package usable on older distributions.
+          - platform: ubuntu-22.04
+            triple: x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux bundling dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      # `tauri build` runs these through beforeBuildCommand as well; doing it
+      # here pins the target explicitly rather than leaving it to be inferred,
+      # and the second run is a no-op because both scripts skip staged work.
+      - name: Stage the bundled Node runtime and harness
+        run: |
+          node scripts/fetch-node.mjs
+          node scripts/fetch-harness.mjs
+        env:
+          TAURI_ENV_TARGET_TRIPLE: ${{ matrix.triple }}
+
+      - name: Check
+        run: |
+          cargo fmt --manifest-path src-tauri/Cargo.toml --check
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+          cargo test --manifest-path src-tauri/Cargo.toml
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'DSH Desktop ${{ github.ref_name }}'
+          releaseBody: |
+            Self-contained installers: the Node runtime, the package manager and
+            DeepSeek Harness itself are bundled, so nothing is downloaded on
+            first launch and no Node.js has to be installed.
+
+            **Windows** — `-setup.exe`. No `.msi` is published: it did not
+            work, and it took over a minute to install where this takes ten
+            seconds, because MSI registers every bundled file as its own
+            component.
+
+            **Linux** — `.AppImage` runs on any distribution without
+            installing; `.deb` and `.rpm` also add a menu entry. The tray icon
+            needs a status-notifier host, which GNOME provides through the
+            AppIndicator extension.
+
+            macOS is not built yet.
+          releaseDraft: true
+          prerelease: true

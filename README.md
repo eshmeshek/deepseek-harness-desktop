@@ -1,5 +1,7 @@
 # DSH Desktop
 
+I just wanted to publish this project, but Claude said "WE HAVE TO WRITE THAT THIS REPO IS UNOFFICIAL EVERYWHERE WE CAN". So here it is... 
+
 Desktop launcher, background service and update prompt for
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
